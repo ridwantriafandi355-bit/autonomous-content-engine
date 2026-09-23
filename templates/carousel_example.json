@@ -1,0 +1,69 @@
+{
+  "brand_handle": "@nusantaraai00001",
+  "slides": [
+    {
+      "badge": "AI AUTOMATION",
+      "title": "Membangun Autonomous AI Content Engine",
+      "subtitle": "Dari riset berita global, penulisan script, render visual, hingga publish Buffer otomatis.",
+      "cards": [
+        {
+          "title": "Tantangan Konten Manual",
+          "desc": "Butuh 3-4 jam per hari hanya untuk riset topik, copywriting, mendesain slide, dan posting berkala."
+        },
+        {
+          "title": "Solusi Multi-Agent",
+          "desc": "Memecah tugas ke 4 peran spesifik: Researcher, Copywriter, Visual Renderer, dan Publisher."
+        }
+      ]
+    },
+    {
+      "badge": "ARSITEKTUR SISTEM",
+      "title": "4 Pilar Pipeline Otomatis",
+      "subtitle": "Bagaimana data mengalir dari raw search hingga media terbit di LinkedIn & Instagram.",
+      "cards": [
+        {
+          "title": "1. Research & Synthesis",
+          "desc": "Web search scraping 24 jam terakhir menyaring berita model & update tools AI berbobot."
+        },
+        {
+          "title": "2. Editorial & Formatting",
+          "desc": "Transformasi data mentah jadi skrip carousel 5 slide dengan hook tajam dan CTA terukur."
+        },
+        {
+          "title": "3. Headless Visual Engine",
+          "desc": "Script Python Pillow merender slide 1080x1350 pixel tajam langsung di server Linux."
+        }
+      ]
+    },
+    {
+      "badge": "DISTRIBUSI MCP",
+      "title": "Auto-Schedule via Buffer MCP",
+      "subtitle": "Menghubungkan agent server dengan antrean media sosial tanpa buka aplikasi.",
+      "cards": [
+        {
+          "title": "Koneksi Aman Buffer MCP",
+          "desc": "Mengirim payload gambar & caption terformat langsung ke antrean Buffer."
+        },
+        {
+          "title": "Multi-Channel Broadcast",
+          "desc": "Sekali generate langsung terjadwal ke profil LinkedIn dan akun Instagram bisnis."
+        }
+      ]
+    },
+    {
+      "badge": "ACTION PLAN",
+      "title": "Mulai Bangun Pipeline Sendiri",
+      "subtitle": "Kode lengkap, template script, dan prompt sudah dikemas dalam satu skill terbuka.",
+      "cards": [
+        {
+          "title": "Simpan & Terapkan",
+          "desc": "Gunakan repositori ini untuk mengotomasi operasional konten brand atau personal profile kamu."
+        },
+        {
+          "title": "Diskusi & Kolaborasi",
+          "desc": "Punya workflow atau integrasi tool AI lain? Hubungi @nusantaraai00001 untuk sharing!"
+        }
+      ]
+    }
+  ]
+}
