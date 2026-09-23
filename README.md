@@ -1,6 +1,10 @@
-# 🚀 Autonomous AI Content Pipeline
+# 🚀 Autonomous Content Engine
 
-> End-to-end automated social media content engine: **Research ➔ Copywriting ➔ Headless Visual Carousel Rendering ➔ Buffer MCP Auto-Publishing**.
+> End-to-end automated multi-agent social content pipeline: **Research ➔ Copywriting ➔ Headless 4:5 Carousel Rendering ➔ Buffer MCP Auto-Publishing**.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Buffer MCP](https://img.shields.io/badge/Buffer-MCP%20Ready-6366f1.svg)](https://buffer.com)
 
 Built by **Ridwan Triafandi** ([@nusantaraai00001](https://www.instagram.com/nusantaraai00001) / [LinkedIn](https://www.linkedin.com/in/ridwan-triafandi-639a453b5)).
 
@@ -23,7 +27,9 @@ This repository packages an **autonomous multi-agent pipeline** that executes th
 
 ```
 ├── SKILL.md                         # Standard Hermes / AI Agent Skill specification
-├── README.md                        # Documentation & setup guide
+├── README.md                        # Project overview & quickstart
+├── DOCUMENTATION.md                 # In-depth architectural & deployment guide
+├── LICENSE                          # MIT License
 ├── scripts/
 │   ├── render_carousel.py           # Headless 1080x1350 Pillow slide renderer
 │   └── buffer_publisher.py          # Buffer MCP / API multi-channel dispatcher
@@ -46,7 +52,7 @@ pip install pillow requests
 ```
 
 ### 2. Render Carousel Slides
-Create or modify `templates/carousel_example.json` and run:
+Modify `templates/carousel_example.json` and run:
 
 ```bash
 python3 scripts/render_carousel.py \
@@ -69,13 +75,18 @@ python3 scripts/buffer_publisher.py \
 
 ---
 
+## 📖 In-Depth Documentation
+
+For full details on the multi-stage pipeline, layout engine mathematics, prompt engineering, and Buffer MCP scheduling, see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
+
+---
+
 ## 🤖 Using as an AI Agent Skill (Hermes)
 
 This repository includes a native `SKILL.md`. To import it into your Hermes Agent instance:
 
 ```bash
-# Clone to your Hermes skills directory:
-git clone https://github.com/Dandidcee/autonomous-content-pipeline.git ~/.hermes/skills/autonomous-content-pipeline
+git clone https://github.com/ridwantriafandi355-bit/autonomous-content-engine.git ~/.hermes/skills/autonomous-content-engine
 ```
 
 The agent will automatically recognize the skill and autonomously execute content batches on demand.
