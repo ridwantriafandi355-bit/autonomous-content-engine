@@ -1,0 +1,374 @@
+{
+  "name": "Production AI Lead Ingestion & CRM Enrichment Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook: Inbound Lead Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "lead-intake-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json.body || $input.first().json;\n\n// Mandatory field check\nif (!item.email || !item.name) {\n  throw new Error('Validation Failed: Missing required email or name');\n}\n\n// Clean and normalize email & domain\nconst email = item.email.trim().toLowerCase();\nconst domain = email.split('@')[1];\n\n// Detect free/generic email domains\nconst genericDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];\nconst isCompanyDomain = !genericDomains.includes(domain);\n\nreturn [{\n  json: {\n    raw_name: item.name.trim(),\n    email: email,\n    phone: item.phone ? item.phone.trim() : null,\n    company: item.company ? item.company.trim() : (isCompanyDomain ? domain.split('.')[0].toUpperCase() : 'Unknown'),\n    domain: isCompanyDomain ? domain : (item.website ? item.website.replace(/^https?:\\/\\//, '').replace(/\\/.*$/, '') : null),\n    notes: item.notes || item.message || '',\n    submitted_at: new Date().toISOString(),\n    is_b2b_domain: isCompanyDomain\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Code: Validate & Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_b2b_domain }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "IF: Corporate Domain?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.perplexity.ai/chat/completions",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a B2B intelligence analyst. Provide concise facts about the company: industry, headcount estimate, main offerings, and target market. Output pure JSON with keys: industry, headcount, description, target_market.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Company: {{ $json.company }}, Domain: {{ $json.domain }}\"\n    }\n  ],\n  \"temperature\": 0.2\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "4",
+      "name": "HTTP: Perplexity Company Intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity_api_key",
+          "name": "Perplexity API Key"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "claude-3-5-sonnet-20241022",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1000
+        }
+      },
+      "id": "5",
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        500
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic_api_key",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Lead Information:\n- Name: {{ $('Code: Validate & Normalize Payload').item.json.raw_name }}\n- Email: {{ $('Code: Validate & Normalize Payload').item.json.email }}\n- Company: {{ $('Code: Validate & Normalize Payload').item.json.company }}\n- Domain: {{ $('Code: Validate & Normalize Payload').item.json.domain }}\n- Inbound Notes / Message: {{ $('Code: Validate & Normalize Payload').item.json.notes }}\n- Company Intelligence: {{ $json.choices ? $json.choices[0].message.content : 'Generic personal email, company data unavailable' }}\n\nTasks:\n1. Assign an ICP (Ideal Customer Profile) Fit Score from 1 to 100 based on B2B readiness, intent, and company tier.\n2. Classify tier: High Priority (Tier 1: score >= 75), Medium Priority (Tier 2: score 50-74), Low / Disqualified (Tier 3: score < 50).\n3. Draft an executive summary (max 3 sentences) explaining why they received this score.\n4. Write a tailored, highly specific 1-2 sentence icebreaker hook for the sales development rep (SDR) to use in immediate outreach.\n5. Recommend next best action (e.g. Schedule Executive Demo, Send Self-Service Portal Link, Disqualify).\n\nRespond with strict JSON adhering to schema.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a Chief Revenue Officer and Sales Operations veteran. You evaluate incoming B2B inbound leads with ruthless precision, zero hallucination, and actionable outreach strategy."
+        }
+      },
+      "id": "6",
+      "name": "AI Agent: Lead Scorer & Personalizer",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"icp_score\": {\n      \"type\": \"number\",\n      \"description\": \"Score from 1 to 100\"\n    },\n    \"tier\": {\n      \"type\": \"string\",\n      \"enum\": [\"Tier 1\", \"Tier 2\", \"Tier 3\"]\n    },\n    \"reasoning\": {\n      \"type\": \"string\",\n      \"description\": \"Justification for score and tier classification\"\n    },\n    \"custom_icebreaker\": {\n      \"type\": \"string\",\n      \"description\": \"Personalized hook addressing their specific situation or company offerings\"\n    },\n    \"recommended_action\": {\n      \"type\": \"string\",\n      \"description\": \"Concrete next step for sales rep\"\n    }\n  },\n  \"required\": [\"icp_score\", \"tier\", \"reasoning\", \"custom_icebreaker\", \"recommended_action\"]\n}"
+      },
+      "id": "7",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "email": "={{ $('Code: Validate & Normalize Payload').item.json.email }}",
+        "additionalFields": {
+          "firstName": "={{ $('Code: Validate & Normalize Payload').item.json.raw_name.split(' ')[0] }}",
+          "lastName": "={{ $('Code: Validate & Normalize Payload').item.json.raw_name.split(' ').slice(1).join(' ') || '' }}",
+          "companyName": "={{ $('Code: Validate & Normalize Payload').item.json.company }}",
+          "phoneNumber": "={{ $('Code: Validate & Normalize Payload').item.json.phone }}",
+          "website": "={{ $('Code: Validate & Normalize Payload').item.json.domain }}",
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "icp_score",
+                "value": "={{ $json.output.icp_score }}"
+              },
+              {
+                "property": "lead_tier",
+                "value": "={{ $json.output.tier }}"
+              },
+              {
+                "property": "sdr_icebreaker",
+                "value": "={{ $json.output.custom_icebreaker }}"
+              },
+              {
+                "property": "ai_qualification_notes",
+                "value": "={{ $json.output.reasoning }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8",
+      "name": "HubSpot: Upsert Contact & Properties",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        300
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "hubspot_app_token",
+          "name": "HubSpot App Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.icp_score }}",
+              "operation": "largerEqual",
+              "value2": 75
+            }
+          ]
+        }
+      },
+      "id": "9",
+      "name": "IF: High Priority Tier 1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#leads-hot",
+        "text": "=🔥 *HOT LEAD ALERT (Tier 1)*\n\n*Contact:* {{ $('Code: Validate & Normalize Payload').item.json.raw_name }} ({{ $('Code: Validate & Normalize Payload').item.json.email }})\n*Company:* {{ $('Code: Validate & Normalize Payload').item.json.company }}\n*ICP Score:* `{{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.icp_score }} / 100`\n\n*AI Reasoning:*\n>{{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.reasoning }}\n\n*Suggested SDR Hook:*\n```\n{{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.custom_icebreaker }}\n```\n\n*Recommended Action:* {{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.recommended_action }}\n*CRM:* HubSpot Contact record updated.",
+        "otherOptions": {}
+      },
+      "id": "10",
+      "name": "Slack: Immediate Hot Lead Dispatch",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1940,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack_bot_token",
+          "name": "Slack Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#leads-general",
+        "text": "=ℹ️ *Standard Lead Ingested (Tier 2/3)*\n*Contact:* {{ $('Code: Validate & Normalize Payload').item.json.raw_name }} | {{ $('Code: Validate & Normalize Payload').item.json.company }}\n*Score:* `{{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.icp_score }}` | *Tier:* {{ $('AI Agent: Lead Scorer & Personalizer').item.json.output.tier }}\n*Action:* Nurture cadence or self-serve follow-up.",
+        "otherOptions": {}
+      },
+      "id": "11",
+      "name": "Slack: Standard Inbound Log",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1940,
+        420
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack_bot_token",
+          "name": "Slack Bot Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Inbound Lead Intake": {
+      "main": [
+        [
+          {
+            "node": "Code: Validate & Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Validate & Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "IF: Corporate Domain?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Corporate Domain?": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Perplexity Company Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent: Lead Scorer & Personalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Perplexity Company Intelligence": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Lead Scorer & Personalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Lead Scorer & Personalizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: Lead Scorer & Personalizer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Lead Scorer & Personalizer": {
+      "main": [
+        [
+          {
+            "node": "HubSpot: Upsert Contact & Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot: Upsert Contact & Properties": {
+      "main": [
+        [
+          {
+            "node": "IF: High Priority Tier 1?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: High Priority Tier 1?": {
+      "main": [
+        [
+          {
+            "node": "Slack: Immediate Hot Lead Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Standard Inbound Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
