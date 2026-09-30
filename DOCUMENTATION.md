@@ -65,17 +65,26 @@ Refer to `references/prompts.md` for battle-tested prompt templates.
 
 ---
 
-### 3. Visual Engine (Stage 3)
+### 3. Visual & Motion Engine (Stage 3)
 
-The renderer (`scripts/render_carousel.py`) compiles the JSON deck into crisp, platform-optimized slides:
+The pipeline integrates **GFlow (Google Flow Imagen 3 & Veo)** with the headless Pillow renderer (`scripts/render_carousel.py` & `scripts/gflow_visual_engine.py`):
 
 - **Dimensions:** `1080 x 1350 px` (standard 4:5 portrait ratio).
 - **Layout Math:**
   - Dynamic line wrapping based on bounding box measurement (`getbbox`).
   - Container heights adapt to text length to prevent overflow.
   - Accent indicators and badge pills render with anti-aliased corner radiuses.
+  - Automatic background compositing & dark contrast dimming when `bg_image` is specified.
 
 ```bash
+# 1. Generate AI visual background via GFlow
+python3 scripts/gflow_visual_engine.py \
+  --type image \
+  --prompt "Futuristic server room with neon cyan glow, 8k render" \
+  --output assets/cover_bg.png \
+  --aspect 9:16
+
+# 2. Render carousel slides
 python3 scripts/render_carousel.py \
   --input templates/carousel_example.json \
   --out-dir ./output_slides
@@ -101,7 +110,7 @@ python3 scripts/buffer_publisher.py \
 
 ---
 
-## ⚙️ Environment Variables
+## ⚙️ Environment Variables & MCP Daemons
 
 Configure these variables in your deployment environment or `.env` file:
 
@@ -109,7 +118,15 @@ Configure these variables in your deployment environment or `.env` file:
 |---|---|---|
 | `BUFFER_API_KEY` | Buffer profile authentication token / MCP key | Required for Stage 4 |
 | `BUFFER_MCP_URL` | Buffer MCP Server endpoint | `https://mcp.buffer.com/mcp` |
+| `GFLOW_CLI_DIR` | Directory path to `gflow-cli` repository | `/home/ubuntu/gflow-cli` |
+| `GFLOW_MCP_URL` | GFlow MCP daemon Streamable HTTP endpoint | `http://127.0.0.1:8000/mcp` |
 | `DEFAULT_BRAND_HANDLE` | Default footer watermark on slides | `@nusantaraai00001` |
+
+### Starting GFlow MCP Server Daemon
+For autonomous agents and IDEs requiring live MCP tools for Google Flow (`image_t2i`, `video_t2v`):
+```bash
+cd /home/ubuntu/gflow-cli && uv run gflow serve --port 8000
+```
 
 ---
 

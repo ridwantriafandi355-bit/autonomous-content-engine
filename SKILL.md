@@ -69,13 +69,37 @@ Converts raw research into an engaging narrative tailored for LinkedIn & Instagr
 
 ---
 
-## 3. Stage 3: Visual Generation Engine
+## 3. Stage 3: Visual & Video Engine (GFlow + Pillow)
 
-Generates crisp, high-resolution carousel slides headless without a browser.
+Generates crisp, high-resolution carousel slides and AI motion teasers without a browser.
 
-### Specifications
+### GFlow AI Visual & Motion Generation (Google Flow / Imagen 3 / Veo)
+Generate AI cover art or video teasers before rendering the carousel cards:
+```bash
+# 1. Generate 9:16 background image via Google Flow Imagen 3
+python3 scripts/gflow_visual_engine.py \
+  --type image \
+  --prompt "Futuristic clean minimalist server rack room with neon turquoise glow, high-end 3D render, 8k" \
+  --output assets/cover_bg.png \
+  --aspect 9:16
+
+# 2. Or generate a 4-second motion teaser via Google Flow Veo
+python3 scripts/gflow_visual_engine.py \
+  --type video \
+  --prompt "Cinematic camera pan across glowing holographic neural network nodes, 4k" \
+  --output assets/teaser.mp4 \
+  --duration 4 \
+  --aspect 9:16
+
+# Optional: GFlow Streamable HTTP MCP Server daemon
+# Run in background for IDE/Agent MCP access at http://127.0.0.1:8000/mcp:
+cd /home/ubuntu/gflow-cli && uv run gflow serve --port 8000
+```
+
+### Carousel Slide Specifications
 - **Dimensions:** 1080 x 1350 px (4:5 portrait ratio — maximizes mobile viewport).
 - **Format:** High-quality JPG / PNG (< 2 MB for fast Buffer upload).
+- **Backgrounds:** Supports solid colors or AI image backgrounds with automated contrast dimming (`bg_image` key in slide JSON).
 - **Typography:** LiberationSans-Bold (Headers), LiberationSans-Regular (Body), monospace for code.
 - **Color Palette:**
   - Dark Theme: Background `#0A0F1D`, Surface Card `#161F36`, Accent `#4AB3D8`, Text Primary `#FFFFFF`, Text Dim `#94A3B8`.

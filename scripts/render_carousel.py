@@ -58,7 +58,32 @@ def wrap_text(text, font, max_width):
     return lines
 
 def render_slide(slide_data, slide_num, total_slides, brand_handle="@nusantaraai00001"):
-    img = Image.new("RGB", (CANVAS_WIDTH, CANVAS_HEIGHT), BG_COLOR)
+    bg_path = slide_data.get("bg_image")
+    if bg_path and os.path.exists(bg_path):
+        try:
+            bg = Image.open(bg_path).convert("RGBA")
+            bg_ratio = bg.width / bg.height
+            target_ratio = CANVAS_WIDTH / CANVAS_HEIGHT
+            if bg_ratio > target_ratio:
+                new_h = CANVAS_HEIGHT
+                new_w = int(CANVAS_HEIGHT * bg_ratio)
+            else:
+                new_w = CANVAS_WIDTH
+                new_h = int(CANVAS_WIDTH / bg_ratio)
+            bg = bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            left = (new_w - CANVAS_WIDTH) // 2
+            top = (new_h - CANVAS_HEIGHT) // 2
+            bg = bg.crop((left, top, left + CANVAS_WIDTH, top + CANVAS_HEIGHT))
+
+            tint = Image.new("RGBA", (CANVAS_WIDTH, CANVAS_HEIGHT), (10, 15, 29, 200))
+            bg = Image.alpha_composite(bg, tint)
+            img = bg.convert("RGB")
+        except Exception as e:
+            print(f"[warning] Failed to load bg_image {bg_path}: {e}")
+            img = Image.new("RGB", (CANVAS_WIDTH, CANVAS_HEIGHT), BG_COLOR)
+    else:
+        img = Image.new("RGB", (CANVAS_WIDTH, CANVAS_HEIGHT), BG_COLOR)
+
     draw = ImageDraw.Draw(img)
 
     f_badge = ImageFont.truetype(FONT_BOLD, 22) if FONT_BOLD else ImageFont.load_default()
